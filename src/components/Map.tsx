@@ -1,35 +1,47 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMap,
+  Polyline,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 interface Props {
   center: [number, number];
+  pontosLinha?: [number, number][];
 }
 
 type Position = [number, number];
 
-// Componente que atualiza a visualização do mapa sem desmontar
+// Atualiza a visualização do mapa ao mudar o centro
 function ChangeView({ center }: { center: Position }) {
   const map = useMap();
 
   useEffect(() => {
     map.setView(center);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [center]); // não inclua 'map' aqui, é seguro ignorar
+  }, [center]);
 
   return null;
 }
 
-const icon = L.icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.3/dist/images/marker-icon.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
+const icon = L.divIcon({
+  className: "custom-pulse-icon",
+  html: `
+    <div class="pulse-wrapper">
+      <div class="pulse"></div>
+      <div class="core"></div>
+    </div>
+  `,
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
 });
 
-export default function Map({ center }: Props) {
+export default function Map({ center, pontosLinha = [] }: Props) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -48,9 +60,14 @@ export default function Map({ center }: Props) {
       style={{ height: "100%", width: "100%" }}
     >
       <TileLayer
-        attribution="&copy; OpenStreetMap"
+        attribution="&copy; OpenStreetMap contributors"
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+
+      {pontosLinha.length > 1 && (
+        <Polyline positions={pontosLinha} color="blue" />
+      )}
+
       <Marker position={center} icon={icon} />
       <ChangeView center={center} />
     </MapContainer>

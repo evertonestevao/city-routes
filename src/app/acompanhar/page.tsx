@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
+import { MenuSuperior } from "@/components/MenuSuperior";
 
 const Map = dynamic(() => import("@/components/Map"), { ssr: false });
 
@@ -37,6 +38,7 @@ export default function AcompanharPage() {
 
   return (
     <div className="flex flex-col h-screen">
+      <MenuSuperior />
       <header className="h-16 bg-green-600 text-white p-4 text-xl font-bold">
         Caminhão em tempo real
       </header>

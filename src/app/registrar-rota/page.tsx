@@ -4,19 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
 import { v4 as uuidv4 } from "uuid";
+import { MenuSuperior } from "@/components/MenuSuperior";
 
 const Map = dynamic(() => import("@/components/Map"), { ssr: false });
 
-// Calcula a distância entre dois pontos geográficos (Haversine)
+// Função para calcular distância em metros
 function calcularDistanciaM(
   lat1: number,
   lon1: number,
   lat2: number,
   lon2: number
 ): number {
-  const R = 6371000; // raio da Terra em metros
+  const R = 6371000;
   const toRad = (grau: number) => (grau * Math.PI) / 180;
-
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
 
@@ -38,6 +38,7 @@ export default function RegistrarRotaPage() {
   const [posicaoAtual, setPosicaoAtual] = useState<[number, number] | null>(
     null
   );
+  const [pontosLinha, setPontosLinha] = useState<[number, number][]>([]);
 
   const ordemRef = useRef(0);
   const intervaloRef = useRef<NodeJS.Timeout | null>(null);
@@ -46,12 +47,8 @@ export default function RegistrarRotaPage() {
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setPosicaoAtual([pos.coords.latitude, pos.coords.longitude]);
-      },
-      (err) => {
-        alert("Erro ao obter localização inicial: " + err.message);
-      }
+      (pos) => setPosicaoAtual([pos.coords.latitude, pos.coords.longitude]),
+      (err) => alert("Erro ao obter localização inicial: " + err.message)
     );
   }, []);
 
@@ -82,10 +79,9 @@ export default function RegistrarRotaPage() {
     intervaloRef.current = setInterval(() => {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
-          const { latitude, longitude } = pos.coords;
-
-          // Verifica a distância para evitar registrar pontos no mesmo lugar
+          const { latitude, longitude, speed } = pos.coords;
           const anterior = ultimoPontoRef.current;
+
           if (anterior) {
             const distancia = calcularDistanciaM(
               anterior[0],
@@ -93,16 +89,7 @@ export default function RegistrarRotaPage() {
               latitude,
               longitude
             );
-            console.log(
-              "Distância até o ponto anterior:",
-              distancia.toFixed(2),
-              "metros"
-            );
-
-            if (distancia < 10) {
-              console.log("Ignorado: ponto a menos de 10m");
-              return;
-            }
+            if (distancia < 10) return;
           }
 
           const ordem = ordemRef.current++;
@@ -122,6 +109,7 @@ export default function RegistrarRotaPage() {
               latitude,
               longitude,
               timestamp,
+              velocidade: speed ?? null,
             });
 
           if (pontoErro) {
@@ -130,16 +118,11 @@ export default function RegistrarRotaPage() {
           }
 
           setPosicaoAtual([latitude, longitude]);
+          setPontosLinha((prev) => [...prev, [latitude, longitude]]);
           ultimoPontoRef.current = [latitude, longitude];
         },
-        (err) => {
-          console.error("Erro ao obter posição:", err.message);
-        },
-        {
-          enableHighAccuracy: true,
-          maximumAge: 3000,
-          timeout: 10000,
-        }
+        (err) => console.error("Erro ao obter posição:", err.message),
+        { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
       );
     }, 5000);
   };
@@ -155,7 +138,7 @@ export default function RegistrarRotaPage() {
 
   return (
     <div className="flex flex-col h-screen">
-      {/* TOPO */}
+      <MenuSuperior />
       <header className="h-16 bg-gray-800 text-white flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
           <span className="text-lg font-semibold">Registro de Rota</span>
@@ -176,7 +159,6 @@ export default function RegistrarRotaPage() {
         )}
       </header>
 
-      {/* CONTEÚDO */}
       <main
         className="flex-grow"
         style={{ minHeight: "calc(100vh - 64px - 48px)" }}
@@ -205,7 +187,7 @@ export default function RegistrarRotaPage() {
           </div>
         ) : posicaoAtual ? (
           <div className="w-full h-full">
-            <Map center={posicaoAtual} />
+            <Map center={posicaoAtual} pontosLinha={pontosLinha} />
           </div>
         ) : (
           <p className="text-center mt-10 text-gray-500">
@@ -214,7 +196,6 @@ export default function RegistrarRotaPage() {
         )}
       </main>
 
-      {/* RODAPÉ */}
       {gravando && (
         <footer className="h-12 bg-gray-100 text-center flex items-center justify-center text-sm text-gray-600 fixed bottom-0 left-0 right-0">
           {ultimaAtualizacao}

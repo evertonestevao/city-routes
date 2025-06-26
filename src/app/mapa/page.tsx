@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRastreamentoAtivo } from "@/components/useRastreamento";
+import { MenuSuperior } from "@/components/MenuSuperior";
 
 const Map = dynamic(() => import("@/components/Map"), { ssr: false });
 
@@ -34,6 +35,7 @@ export default function PaginaMapa() {
 
   return (
     <div className="flex flex-col h-screen">
+      <MenuSuperior />
       <header className="h-16 bg-gray-800 text-white p-4">Menu</header>
       <main className="flex-grow">
         {posicao ? (

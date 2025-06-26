@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { MenuSuperior } from "@/components/MenuSuperior";
 
 export default function Home() {
   const router = useRouter();
@@ -14,10 +15,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-100">
-      <header className="h-16 bg-gray-800 text-white flex items-center px-4">
-        <h1 className="text-xl font-semibold">Sistema de Rotas</h1>
-      </header>
-
+      <MenuSuperior />
       <main className="flex-1 flex flex-col items-center justify-center p-4 space-y-4">
         {botoes.map((botao) => (
           <button

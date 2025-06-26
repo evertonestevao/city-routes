@@ -1,36 +1,47 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
 
 export function useRastreamentoAtivo() {
+  const idRef = useRef<string | null>(null); // armazena o ID do registro salvo
+
   useEffect(() => {
     const watchId = navigator.geolocation.watchPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
 
         try {
-          const { error } = await supabase.from("rotas_realizadas").insert({
-            latitude,
-            longitude,
-          });
+          // Se ainda não tem ID, insere e guarda o ID
+          if (!idRef.current) {
+            const { data, error } = await supabase
+              .from("rotas_realizadas")
+              .insert({ latitude, longitude })
+              .select("id")
+              .single();
 
-          if (error) {
-            console.error("Erro ao salvar no Supabase:", error.message);
-          }
-        } catch (err: unknown) {
-          if (err instanceof TypeError) {
-            // Erro de rede (sem conexão), não faz nada
-            console.warn(
-              "Conexão perdida. Tentará novamente na próxima posição."
-            );
+            if (error) {
+              console.error("Erro ao inserir no Supabase:", error.message);
+            } else {
+              idRef.current = data.id;
+            }
           } else {
-            console.error("Erro inesperado:", err);
+            // Atualiza a posição do mesmo registro
+            const { error } = await supabase
+              .from("rotas_realizadas")
+              .update({ latitude, longitude })
+              .eq("id", idRef.current);
+
+            if (error) {
+              console.error("Erro ao atualizar posição:", error.message);
+            }
           }
+        } catch (err) {
+          console.error("Erro inesperado:", err);
         }
       },
       (err) => {
-        console.error("Erro ao obter localização:", err.message);
+        console.log("Erro ao obter localização:", err.message);
       },
       {
         enableHighAccuracy: true,
