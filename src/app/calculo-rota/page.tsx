@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { calcularDistanciaM } from "@/lib/utils";
 import { MenuSuperior } from "@/components/MenuSuperior";
 
-const MapTrecho = dynamic(() => import("@/components/MapTrecho"), {
+const MapTrecho = dynamic(() => import("@/components/MapTrechoO"), {
   ssr: false,
 });
 

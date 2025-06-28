@@ -13,12 +13,14 @@ export function MenuSuperior() {
   const router = useRouter();
 
   const botoes = [
+    { label: "Acompanhamento", path: "/acompanhamento" },
     { label: "Acompanhar", path: "/acompanhar" },
     { label: "Mapa", path: "/mapa" },
     { label: "Registrar Rota", path: "/registrar-rota" },
     { label: "Visualizar Rota", path: "/visualizar-rota" },
     { label: "Dados da Rota", path: "/calculo-rota" },
     { label: "Motorista Rotas", path: "/rota-motorista" },
+    { label: "Estimativa", path: "/estimativa" },
   ];
 
   return (
