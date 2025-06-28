@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -12,6 +12,17 @@ import {
 
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet.marker.slideto";
+
+interface SlideToOptions {
+  duration?: number;
+  keepAtCenter?: boolean;
+}
+
+// Extensão do tipo Marker para incluir slideTo
+interface MarkerWithSlideTo extends L.Marker {
+  slideTo: (latlng: L.LatLngExpression, options?: SlideToOptions) => void;
+}
 
 interface Props {
   center: [number, number];
@@ -55,7 +66,7 @@ const iconCaminhao = L.divIcon({
 });
 
 const iconUsuario = L.icon({
-  iconUrl: "https://cdn-icons-png.flaticon.com/512/25/25694.png", // ícone de casinha
+  iconUrl: "https://cdn-icons-png.flaticon.com/512/25/25694.png",
   iconSize: [18, 18],
   iconAnchor: [16, 32],
 });
@@ -67,9 +78,21 @@ export default function Map({
 }: Props) {
   const [mounted, setMounted] = useState(false);
 
+  // Ref tipado para Marker com slideTo
+  const markerRef = useRef<MarkerWithSlideTo | null>(null);
+
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (markerRef.current) {
+      markerRef.current.slideTo(center, {
+        duration: 1000,
+        keepAtCenter: false,
+      });
+    }
+  }, [center]);
 
   if (!mounted) return <div className="h-full w-full" />;
 
@@ -89,10 +112,17 @@ export default function Map({
         <Polyline positions={pontosLinha} color="blue" />
       )}
 
-      {/* Marcador do caminhão */}
-      <Marker position={center} icon={iconCaminhao} />
+      <Marker
+        position={center}
+        icon={iconCaminhao}
+        ref={(ref) => {
+          if (ref && "instance" in ref) {
+            // 'instance' é do tipo Marker padrão, mas fazemos cast para MarkerWithSlideTo
+            markerRef.current = ref.instance as MarkerWithSlideTo;
+          }
+        }}
+      />
 
-      {/* Marcador do usuário */}
       {localUsuario && (
         <Marker position={localUsuario} icon={iconUsuario}>
           <Tooltip direction="top" offset={[0, -30]} opacity={1} permanent>

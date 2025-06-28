@@ -1,4 +1,3 @@
-// AcompanharPage.tsx
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -170,9 +169,53 @@ export default function AcompanharPage() {
     }
   }, [posicaoCaminhao, posicaoUsuario, pontosRota]);
 
-  const pontosLinha = useMemo(() => {
-    return pontosRota.map((p) => [p.latitude, p.longitude] as Posicao);
-  }, [pontosRota]);
+  // Limitar a linha azul entre os pontos mais próximos do caminhão e do usuário
+  const pontosLinhaLimitada = useMemo(() => {
+    if (!posicaoCaminhao || !posicaoUsuario || pontosRota.length === 0)
+      return [];
+
+    function distancia([lat1, lon1]: Posicao, [lat2, lon2]: Posicao) {
+      return Math.sqrt(Math.pow(lat1 - lat2, 2) + Math.pow(lon1 - lon2, 2));
+    }
+
+    const pontoMaisProximoDoUsuario = pontosRota.reduce((prev, curr) => {
+      const distPrev = distancia(
+        [prev.latitude, prev.longitude],
+        posicaoUsuario
+      );
+      const distCurr = distancia(
+        [curr.latitude, curr.longitude],
+        posicaoUsuario
+      );
+      return distCurr < distPrev ? curr : prev;
+    });
+
+    const pontoMaisProximoDoCaminhao = pontosRota.reduce((prev, curr) => {
+      const distPrev = distancia(
+        [prev.latitude, prev.longitude],
+        posicaoCaminhao
+      );
+      const distCurr = distancia(
+        [curr.latitude, curr.longitude],
+        posicaoCaminhao
+      );
+      return distCurr < distPrev ? curr : prev;
+    });
+
+    const idxUsuario = pontosRota.findIndex(
+      (p) => p.id === pontoMaisProximoDoUsuario.id
+    );
+    const idxCaminhao = pontosRota.findIndex(
+      (p) => p.id === pontoMaisProximoDoCaminhao.id
+    );
+
+    const startIdx = Math.min(idxUsuario, idxCaminhao);
+    const endIdx = Math.max(idxUsuario, idxCaminhao);
+
+    return pontosRota
+      .slice(startIdx, endIdx + 1)
+      .map((p) => [p.latitude, p.longitude] as Posicao);
+  }, [posicaoCaminhao, posicaoUsuario, pontosRota]);
 
   const corTexto = tempoEstimado?.split("|")[0];
   const textoTempo = tempoEstimado?.split("|")[1];
@@ -210,7 +253,7 @@ export default function AcompanharPage() {
           <Map
             center={posicaoCaminhao}
             localUsuario={posicaoUsuario}
-            pontosLinha={pontosLinha}
+            pontosLinha={pontosLinhaLimitada}
           />
         ) : (
           <p className="text-center mt-10">Carregando posição do caminhão...</p>

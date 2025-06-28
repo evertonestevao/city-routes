@@ -15,6 +15,8 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "leaflet": "^1.9.4",
+    "leaflet.marker.slideto": "^0.3.0",
+    "leaflet.smooth_marker_bouncing": "^3.1.1",
     "lucide-react": "^0.522.0",
     "next": "15.3.4",
     "react": "^19.0.0",
