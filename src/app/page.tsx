@@ -7,10 +7,8 @@ export default function Home() {
   const router = useRouter();
 
   const botoes = [
-    { label: "Acompanhar", path: "/acompanhar" },
-    { label: "Mapa", path: "/mapa" },
-    { label: "Registrar Rota", path: "/registrar-rota" },
-    { label: "Visualizar Rota", path: "/visualizar-rota" },
+    { label: "Acompanhamento", path: "/acompanhamento" },
+    { label: "Administrar Rotas", path: "/administrar-rotas" },
   ];
 
   return (

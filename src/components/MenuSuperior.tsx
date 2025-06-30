@@ -14,6 +14,7 @@ export function MenuSuperior() {
 
   const botoes = [
     { label: "Acompanhamento", path: "/acompanhamento" },
+    { label: "Coletando", path: "/coletando" },
     { label: "Acompanhar", path: "/acompanhar" },
     { label: "Mapa", path: "/mapa" },
     { label: "Registrar Rota", path: "/registrar-rota" },
@@ -25,7 +26,12 @@ export function MenuSuperior() {
 
   return (
     <header className="h-16 bg-gray-800 text-white flex items-center justify-between px-4">
-      <h1 className="text-xl font-semibold">Sistema de Rotas</h1>
+      <h1
+        className="text-xl font-semibold hover:cursor-pointer"
+        onClick={() => router.push("/")}
+      >
+        Sistema de Rotas
+      </h1>
       <Sheet>
         <SheetTrigger asChild>
           <Button

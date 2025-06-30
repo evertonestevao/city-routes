@@ -42,7 +42,6 @@ export default function AcompanharPage() {
 
       if (data) {
         setRotas(data);
-        if (data.length > 0) setRotaSelecionada(data[0].id);
       }
     }
 
@@ -121,6 +120,46 @@ export default function AcompanharPage() {
       supabase.removeChannel(canal);
     };
   }, []);
+
+  // Estado para indicar se o caminhão já passou
+  const caminhãoPassou = useMemo(() => {
+    if (!posicaoCaminhao || !posicaoUsuario || pontosRota.length === 0)
+      return false;
+
+    function distancia([lat1, lon1]: Posicao, [lat2, lon2]: Posicao) {
+      return Math.sqrt(Math.pow(lat1 - lat2, 2) + Math.pow(lon1 - lon2, 2));
+    }
+
+    const pontoMaisProximoDoUsuario = pontosRota.reduce((prev, curr) => {
+      const distPrev = distancia(
+        [prev.latitude, prev.longitude],
+        posicaoUsuario
+      );
+      const distCurr = distancia(
+        [curr.latitude, curr.longitude],
+        posicaoUsuario
+      );
+      return distCurr < distPrev ? curr : prev;
+    });
+
+    const pontoMaisProximoDoCaminhao = pontosRota.reduce((prev, curr) => {
+      const distPrev = distancia(
+        [prev.latitude, prev.longitude],
+        posicaoCaminhao
+      );
+      const distCurr = distancia(
+        [curr.latitude, curr.longitude],
+        posicaoCaminhao
+      );
+      return distCurr < distPrev ? curr : prev;
+    });
+
+    const t1 = new Date(pontoMaisProximoDoCaminhao.timestamp).getTime();
+    const t2 = new Date(pontoMaisProximoDoUsuario.timestamp).getTime();
+    const diffMin = Math.round((t2 - t1) / 60000);
+
+    return diffMin < 0;
+  }, [posicaoCaminhao, posicaoUsuario, pontosRota]);
 
   useEffect(() => {
     if (!posicaoCaminhao || !posicaoUsuario || pontosRota.length === 0) {
@@ -236,6 +275,9 @@ export default function AcompanharPage() {
           value={rotaSelecionada}
           onChange={(e) => setRotaSelecionada(e.target.value)}
         >
+          <option value="" disabled>
+            Escolha...
+          </option>
           {rotas.map((rota) => (
             <option key={rota.id} value={rota.id}>
               {rota.nome}
@@ -253,7 +295,7 @@ export default function AcompanharPage() {
           <Map
             center={posicaoCaminhao}
             localUsuario={posicaoUsuario}
-            pontosLinha={pontosLinhaLimitada}
+            pontosLinha={caminhãoPassou ? [] : pontosLinhaLimitada}
           />
         ) : (
           <p className="text-center mt-10">Carregando posição do caminhão...</p>
