@@ -25,8 +25,12 @@ interface Ponto {
 export default function EstimarChegadaPage() {
   const [rotas, setRotas] = useState<Rota[]>([]);
   const [rotaSelecionada, setRotaSelecionada] = useState("");
-  const [localUsuario, setLocalUsuario] = useState<[number, number] | null>(null);
-  const [localCaminhao, setLocalCaminhao] = useState<[number, number] | null>(null);
+  const [localUsuario, setLocalUsuario] = useState<[number, number] | null>(
+    null
+  );
+  const [localCaminhao, setLocalCaminhao] = useState<[number, number] | null>(
+    null
+  );
   const [tempoEstimado, setTempoEstimado] = useState<string | null>(null);
   const [trecho, setTrecho] = useState<Ponto[]>([]);
   const [latManual, setLatManual] = useState("");
@@ -55,12 +59,16 @@ export default function EstimarChegadaPage() {
 
       if (!pontosData?.length) return;
 
-      navigator.geolocation.getCurrentPosition(
-        (pos) => setLocalUsuario([pos.coords.latitude, pos.coords.longitude]),
+      navigator.geolocation.getCurrentPosition((pos) =>
+        setLocalUsuario([pos.coords.latitude, pos.coords.longitude])
       );
 
       const usuario = localUsuario!;
-      const pontoDestino = encontrarMaisProximo(usuario[0], usuario[1], pontosData);
+      const pontoDestino = encontrarMaisProximo(
+        usuario[0],
+        usuario[1],
+        pontosData
+      );
 
       const { data: caminhaoData } = await supabase
         .from("rotas_realizadas")
@@ -77,26 +85,36 @@ export default function EstimarChegadaPage() {
         return;
       }
 
-      const origem = encontrarMaisProximo(caminhaoData.latitude, caminhaoData.longitude, pontosData);
+      const origem = encontrarMaisProximo(
+        caminhaoData.latitude,
+        caminhaoData.longitude,
+        pontosData
+      );
 
-      const selecionados = pontosData.filter(p =>
-        p.ordem >= Math.min(origem.ordem, pontoDestino.ordem) &&
-        p.ordem <= Math.max(origem.ordem, pontoDestino.ordem)
+      const selecionados = pontosData.filter(
+        (p) =>
+          p.ordem >= Math.min(origem.ordem, pontoDestino.ordem) &&
+          p.ordem <= Math.max(origem.ordem, pontoDestino.ordem)
       );
 
       setTrecho(selecionados);
       setLocalCaminhao([caminhaoData.latitude, caminhaoData.longitude]);
 
       // cálculo estimado
-      let distRest = calcularDistanciaM(
+      const distRest = calcularDistanciaM(
         caminhaoData.latitude,
         caminhaoData.longitude,
         pontoDestino.latitude,
         pontoDestino.longitude
       );
 
-      const { registrada_em: start, registrada_em: end } = pontosData[0], pontosData[pontosData.length - 1];
-      const mediaVel = distRest / ((new Date(end).getTime() - new Date(start).getTime()) / 1000);
+      // ✅ CORREÇÃO DAQUI:
+      const start = pontosData[0].registrada_em;
+      const end = pontosData[pontosData.length - 1].registrada_em;
+
+      const tempoDecorrido =
+        (new Date(end).getTime() - new Date(start).getTime()) / 1000;
+      const mediaVel = distRest / tempoDecorrido;
       const minutos = Math.floor(distRest / mediaVel / 60);
 
       if (origem.ordem > pontoDestino.ordem) {
@@ -111,7 +129,11 @@ export default function EstimarChegadaPage() {
     return () => clearInterval(interval);
   }, [rotaSelecionada, localUsuario]);
 
-  const encontrarMaisProximo = (lat: number, lng: number, lista: Ponto[]): Ponto =>
+  const encontrarMaisProximo = (
+    lat: number,
+    lng: number,
+    lista: Ponto[]
+  ): Ponto =>
     lista.reduce((mp, c) => {
       return calcularDistanciaM(lat, lng, c.latitude, c.longitude) <
         calcularDistanciaM(lat, lng, mp.latitude, mp.longitude)
@@ -139,8 +161,10 @@ export default function EstimarChegadaPage() {
           className="w-full border p-2 rounded"
         >
           <option value="">Selecione uma rota</option>
-          {rotas.map(r => (
-            <option key={r.id} value={r.id}>{r.nome}</option>
+          {rotas.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.nome}
+            </option>
           ))}
         </select>
 
@@ -150,14 +174,14 @@ export default function EstimarChegadaPage() {
               <input
                 type="text"
                 value={latManual || localUsuario[0].toFixed(6)}
-                onChange={e => setLatManual(e.target.value)}
+                onChange={(e) => setLatManual(e.target.value)}
                 placeholder="Latitude"
                 className="w-1/2 border p-2 rounded"
               />
               <input
                 type="text"
                 value={lngManual || localUsuario[1].toFixed(6)}
-                onChange={e => setLngManual(e.target.value)}
+                onChange={(e) => setLngManual(e.target.value)}
                 placeholder="Longitude"
                 className="w-1/2 border p-2 rounded"
               />
@@ -172,7 +196,14 @@ export default function EstimarChegadaPage() {
         )}
 
         {tempoEstimado && (
-          <div className={`font-medium ${tempoEstimado.includes("já passou") || tempoEstimado.includes("Não está") ? "text-red-600" : "text-green-700"}`}>
+          <div
+            className={`font-medium ${
+              tempoEstimado.includes("já passou") ||
+              tempoEstimado.includes("Não está")
+                ? "text-red-600"
+                : "text-green-700"
+            }`}
+          >
             {tempoEstimado}
           </div>
         )}

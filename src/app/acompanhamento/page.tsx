@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { MenuSuperior } from "@/components/MenuSuperior";
 
@@ -49,7 +50,12 @@ export default function AcompanharPage() {
   }, []);
 
   useEffect(() => {
-    if (!rotaSelecionada) return;
+    if (!rotaSelecionada) {
+      setPontosRota([]);
+      setPosicaoCaminhao(null);
+      setTempoEstimado(null);
+      return;
+    }
 
     async function buscarPontosDaRota() {
       const { data } = await supabase
@@ -67,39 +73,92 @@ export default function AcompanharPage() {
   }, [rotaSelecionada]);
 
   useEffect(() => {
-    async function buscarUltimaPosicao() {
+    if (!rotaSelecionada) return;
+
+    async function buscarUltimaPosicaoDaRota() {
       const { data } = await supabase
         .from("rotas_realizadas")
-        .select("latitude, longitude")
+        .select("latitude, longitude, registrada_em")
+        .eq("rota_id", rotaSelecionada)
         .order("registrada_em", { ascending: false })
         .limit(1)
         .single();
 
       if (data) {
         setPosicaoCaminhao([data.latitude, data.longitude]);
+        setTempoEstimado(null);
+      } else {
+        setPosicaoCaminhao(null);
+        setTempoEstimado("gray|Sem coleta no momento");
       }
     }
 
-    buscarUltimaPosicao();
+    buscarUltimaPosicaoDaRota();
 
     const canal = supabase
-      .channel("rota-updates")
+      .channel(`rota-updates-${rotaSelecionada}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "rotas_realizadas",
+          filter: `rota_id=eq.${rotaSelecionada}`,
+        },
+        (payload) => {
+          const novo = payload.new;
+          if (novo.latitude && novo.longitude) {
+            setPosicaoCaminhao([novo.latitude, novo.longitude]);
+            setTempoEstimado(null);
+          }
+        }
+      )
       .on(
         "postgres_changes",
         {
           event: "UPDATE",
           schema: "public",
           table: "rotas_realizadas",
+          filter: `rota_id=eq.${rotaSelecionada}`,
         },
         (payload) => {
           const nova = payload.new;
           if (nova.latitude && nova.longitude) {
             setPosicaoCaminhao([nova.latitude, nova.longitude]);
+            setTempoEstimado(null);
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "rotas_realizadas",
+          filter: `rota_id=eq.${rotaSelecionada}`,
+        },
+        async () => {
+          // Verifica se ainda existe alguma coleta para a rota
+          const { data } = await supabase
+            .from("rotas_realizadas")
+            .select("id")
+            .eq("rota_id", rotaSelecionada)
+            .limit(1);
+
+          if (!data || data.length === 0) {
+            setPosicaoCaminhao(null);
+            setTempoEstimado("gray|Sem coleta no momento");
           }
         }
       )
       .subscribe();
 
+    return () => {
+      supabase.removeChannel(canal);
+    };
+  }, [rotaSelecionada]);
+
+  useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -115,13 +174,8 @@ export default function AcompanharPage() {
     } else {
       console.warn("Geolocalização não suportada pelo navegador.");
     }
-
-    return () => {
-      supabase.removeChannel(canal);
-    };
   }, []);
 
-  // Estado para indicar se o caminhão já passou
   const caminhãoPassou = useMemo(() => {
     if (!posicaoCaminhao || !posicaoUsuario || pontosRota.length === 0)
       return false;
@@ -130,40 +184,34 @@ export default function AcompanharPage() {
       return Math.sqrt(Math.pow(lat1 - lat2, 2) + Math.pow(lon1 - lon2, 2));
     }
 
-    const pontoMaisProximoDoUsuario = pontosRota.reduce((prev, curr) => {
-      const distPrev = distancia(
-        [prev.latitude, prev.longitude],
-        posicaoUsuario
-      );
-      const distCurr = distancia(
-        [curr.latitude, curr.longitude],
-        posicaoUsuario
-      );
-      return distCurr < distPrev ? curr : prev;
-    });
+    const pontoMaisProximoDoUsuario = pontosRota.reduce((prev, curr) =>
+      distancia([curr.latitude, curr.longitude], posicaoUsuario) <
+      distancia([prev.latitude, prev.longitude], posicaoUsuario)
+        ? curr
+        : prev
+    );
 
-    const pontoMaisProximoDoCaminhao = pontosRota.reduce((prev, curr) => {
-      const distPrev = distancia(
-        [prev.latitude, prev.longitude],
-        posicaoCaminhao
-      );
-      const distCurr = distancia(
-        [curr.latitude, curr.longitude],
-        posicaoCaminhao
-      );
-      return distCurr < distPrev ? curr : prev;
-    });
+    const pontoMaisProximoDoCaminhao = pontosRota.reduce((prev, curr) =>
+      distancia([curr.latitude, curr.longitude], posicaoCaminhao) <
+      distancia([prev.latitude, prev.longitude], posicaoCaminhao)
+        ? curr
+        : prev
+    );
 
     const t1 = new Date(pontoMaisProximoDoCaminhao.timestamp).getTime();
     const t2 = new Date(pontoMaisProximoDoUsuario.timestamp).getTime();
-    const diffMin = Math.round((t2 - t1) / 60000);
 
-    return diffMin < 0;
+    return t2 - t1 < 0;
   }, [posicaoCaminhao, posicaoUsuario, pontosRota]);
 
   useEffect(() => {
-    if (!posicaoCaminhao || !posicaoUsuario || pontosRota.length === 0) {
-      setTempoEstimado(null);
+    if (
+      !posicaoCaminhao ||
+      !posicaoUsuario ||
+      pontosRota.length === 0 ||
+      tempoEstimado?.startsWith("gray")
+    ) {
+      if (!tempoEstimado?.startsWith("gray")) setTempoEstimado(null);
       return;
     }
 
@@ -171,29 +219,19 @@ export default function AcompanharPage() {
       return Math.sqrt(Math.pow(lat1 - lat2, 2) + Math.pow(lon1 - lon2, 2));
     }
 
-    const pontoMaisProximoDoUsuario = pontosRota.reduce((prev, curr) => {
-      const distPrev = distancia(
-        [prev.latitude, prev.longitude],
-        posicaoUsuario
-      );
-      const distCurr = distancia(
-        [curr.latitude, curr.longitude],
-        posicaoUsuario
-      );
-      return distCurr < distPrev ? curr : prev;
-    });
+    const pontoMaisProximoDoUsuario = pontosRota.reduce((prev, curr) =>
+      distancia([curr.latitude, curr.longitude], posicaoUsuario) <
+      distancia([prev.latitude, prev.longitude], posicaoUsuario)
+        ? curr
+        : prev
+    );
 
-    const pontoMaisProximoDoCaminhao = pontosRota.reduce((prev, curr) => {
-      const distPrev = distancia(
-        [prev.latitude, prev.longitude],
-        posicaoCaminhao
-      );
-      const distCurr = distancia(
-        [curr.latitude, curr.longitude],
-        posicaoCaminhao
-      );
-      return distCurr < distPrev ? curr : prev;
-    });
+    const pontoMaisProximoDoCaminhao = pontosRota.reduce((prev, curr) =>
+      distancia([curr.latitude, curr.longitude], posicaoCaminhao) <
+      distancia([prev.latitude, prev.longitude], posicaoCaminhao)
+        ? curr
+        : prev
+    );
 
     const t1 = new Date(pontoMaisProximoDoCaminhao.timestamp).getTime();
     const t2 = new Date(pontoMaisProximoDoUsuario.timestamp).getTime();
@@ -208,7 +246,6 @@ export default function AcompanharPage() {
     }
   }, [posicaoCaminhao, posicaoUsuario, pontosRota]);
 
-  // Limitar a linha azul entre os pontos mais próximos do caminhão e do usuário
   const pontosLinhaLimitada = useMemo(() => {
     if (!posicaoCaminhao || !posicaoUsuario || pontosRota.length === 0)
       return [];
@@ -217,29 +254,19 @@ export default function AcompanharPage() {
       return Math.sqrt(Math.pow(lat1 - lat2, 2) + Math.pow(lon1 - lon2, 2));
     }
 
-    const pontoMaisProximoDoUsuario = pontosRota.reduce((prev, curr) => {
-      const distPrev = distancia(
-        [prev.latitude, prev.longitude],
-        posicaoUsuario
-      );
-      const distCurr = distancia(
-        [curr.latitude, curr.longitude],
-        posicaoUsuario
-      );
-      return distCurr < distPrev ? curr : prev;
-    });
+    const pontoMaisProximoDoUsuario = pontosRota.reduce((prev, curr) =>
+      distancia([curr.latitude, curr.longitude], posicaoUsuario) <
+      distancia([prev.latitude, prev.longitude], posicaoUsuario)
+        ? curr
+        : prev
+    );
 
-    const pontoMaisProximoDoCaminhao = pontosRota.reduce((prev, curr) => {
-      const distPrev = distancia(
-        [prev.latitude, prev.longitude],
-        posicaoCaminhao
-      );
-      const distCurr = distancia(
-        [curr.latitude, curr.longitude],
-        posicaoCaminhao
-      );
-      return distCurr < distPrev ? curr : prev;
-    });
+    const pontoMaisProximoDoCaminhao = pontosRota.reduce((prev, curr) =>
+      distancia([curr.latitude, curr.longitude], posicaoCaminhao) <
+      distancia([prev.latitude, prev.longitude], posicaoCaminhao)
+        ? curr
+        : prev
+    );
 
     const idxUsuario = pontosRota.findIndex(
       (p) => p.id === pontoMaisProximoDoUsuario.id
@@ -287,11 +314,38 @@ export default function AcompanharPage() {
       </div>
 
       {textoTempo && (
-        <div className={`text-${corTexto} text-lg px-4 pb-2`}>{textoTempo}</div>
+        <div
+          className={`text-white text-lg font-semibold px-4 py-3 ${
+            corTexto === "green"
+              ? "bg-green-600"
+              : corTexto === "red"
+              ? "bg-orange-600"
+              : corTexto === "blue"
+              ? "bg-blue-600"
+              : "bg-gray-500"
+          }`}
+        >
+          {textoTempo}
+        </div>
       )}
 
-      <main className="flex-grow">
-        {posicaoCaminhao ? (
+      <main className="flex-grow flex items-center justify-center">
+        {rotaSelecionada === "" ? (
+          <p className="text-center mt-10 text-gray-600">
+            Por favor, selecione uma rota para acompanhar.
+          </p>
+        ) : tempoEstimado?.startsWith("gray") ? (
+          <div className="flex flex-col items-center gap-4 text-gray-700">
+            <Image
+              src="/truck-icon.png"
+              alt="Ícone de caminhão"
+              width={64}
+              height={64}
+              priority
+            />
+            <p className="text-xl font-medium">Sem coleta no momento</p>
+          </div>
+        ) : posicaoCaminhao ? (
           <Map
             center={posicaoCaminhao}
             localUsuario={posicaoUsuario}

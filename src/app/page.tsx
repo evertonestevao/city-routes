@@ -7,8 +7,10 @@ export default function Home() {
   const router = useRouter();
 
   const botoes = [
+    { label: "Rotas Inteligentes", path: "/rotas-inteligentes" },
     { label: "Acompanhamento", path: "/acompanhamento" },
     { label: "Administrar Rotas", path: "/administrar-rotas" },
+    { label: "Iniciar Rota", path: "/iniciar-rota" },
   ];
 
   return (

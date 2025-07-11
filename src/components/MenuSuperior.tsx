@@ -8,21 +8,25 @@ import {
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export function MenuSuperior() {
   const router = useRouter();
 
   const botoes = [
     { label: "Acompanhamento", path: "/acompanhamento" },
-    { label: "Coletando", path: "/coletando" },
-    { label: "Acompanhar", path: "/acompanhar" },
-    { label: "Mapa", path: "/mapa" },
-    { label: "Registrar Rota", path: "/registrar-rota" },
-    { label: "Visualizar Rota", path: "/visualizar-rota" },
-    { label: "Dados da Rota", path: "/calculo-rota" },
-    { label: "Motorista Rotas", path: "/rota-motorista" },
-    { label: "Estimativa", path: "/estimativa" },
+    { label: "Administrar Rotas", path: "/administrar-rotas" },
+    { label: "Iniciar Rota", path: "/iniciar-rota" },
   ];
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (!error) {
+      router.push("/login");
+    } else {
+      alert("Erro ao fazer logout");
+    }
+  };
 
   return (
     <header className="h-16 bg-gray-800 text-white flex items-center justify-between px-4">
@@ -37,7 +41,7 @@ export function MenuSuperior() {
           <Button
             variant="ghost"
             size="icon"
-            className="text-white hover:bg-gray-700"
+            className="text-white hover:bg-gray-700 hover:cursor-pointer"
           >
             <Menu className="w-6 h-6" />
           </Button>
@@ -57,6 +61,13 @@ export function MenuSuperior() {
                 {botao.label}
               </Button>
             ))}
+            <Button
+              onClick={handleLogout}
+              variant="destructive"
+              className="justify-start hover:cursor-pointer"
+            >
+              Sair
+            </Button>
           </div>
         </SheetContent>
       </Sheet>
