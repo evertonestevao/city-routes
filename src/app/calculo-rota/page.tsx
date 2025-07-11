@@ -23,6 +23,11 @@ interface Ponto {
   velocidade?: number | null;
 }
 
+interface Coordenada {
+  latitude: number;
+  longitude: number;
+}
+
 export default function EstimarTrechoPage() {
   const [rotas, setRotas] = useState<Rota[]>([]);
   const [rotaSelecionada, setRotaSelecionada] = useState<string>("");
@@ -35,6 +40,33 @@ export default function EstimarTrechoPage() {
 
   const [trecho, setTrecho] = useState<Ponto[]>([]);
   const [tempoEstimado, setTempoEstimado] = useState<string | null>(null);
+
+  const [localUsuario, setLocalUsuario] = useState<Coordenada | null>(null);
+  const [localCaminhao, setLocalCaminhao] = useState<Coordenada | null>(null);
+
+  useEffect(() => {
+    // Pega a posição atual do usuário
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setLocalUsuario({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          });
+        },
+        () => {
+          // fallback: posição padrão se usuário não permitir
+          setLocalUsuario({ latitude: -23.55052, longitude: -46.633308 });
+        }
+      );
+    } else {
+      // navegador não suporta geolocalização
+      setLocalUsuario({ latitude: -23.55052, longitude: -46.633308 });
+    }
+
+    // Você pode trocar isso para a posição do caminhão real
+    setLocalCaminhao({ latitude: -23.551, longitude: -46.634 });
+  }, []);
 
   useEffect(() => {
     const carregarRotas = async () => {
@@ -216,9 +248,13 @@ export default function EstimarTrechoPage() {
         </div>
       )}
 
-      {trecho.length > 1 && (
+      {trecho.length > 1 && localUsuario && localCaminhao && (
         <div className="h-96 mt-4">
-          <MapTrecho pontos={trecho} />
+          <MapTrecho
+            pontos={trecho}
+            localUsuario={[localUsuario.latitude, localUsuario.longitude]}
+            localCaminhao={[localCaminhao.latitude, localCaminhao.longitude]}
+          />
         </div>
       )}
     </div>
