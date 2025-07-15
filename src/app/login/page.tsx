@@ -10,10 +10,9 @@ import Image from "next/image";
 
 // Textos dinâmicos que vão digitar e apagar
 const textos = [
-  "Criar rotas",
-  "Ver o melhor trajeto entre destinos",
-  "Acompanhar veículos em tempo real",
-  "Criar rotas otimizadas",
+  "Cria rotas",
+  "Acompanha veículos em tempo real",
+  "Otimiza rotas",
 ];
 
 // Componente do texto com efeito máquina de escrever
@@ -148,7 +147,7 @@ export default function LoginPage() {
             Aqui você consegue:
           </h2>
           <h3
-            className="text-3xl md:text-4xl border-r-4 border-white pr-4 whitespace-nowrap overflow-hidden drop-shadow-lg"
+            className="text-3xl md:text-4xl border-r-4 border-white pr-4  overflow-hidden drop-shadow-lg"
             style={{ minHeight: "3rem" }}
           >
             <TextoMaquina />
