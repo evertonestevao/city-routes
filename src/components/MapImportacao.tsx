@@ -21,7 +21,7 @@ export default function MapImportacao({
   setRotaCalculada,
 }: {
   pontos: Ponto[];
-  tipoRota: "otimizada" | "excel";
+  tipoRota: "otimizada" | "excel" | "manual";
   setRotaCalculada: (pontos: Ponto[]) => void;
 }) {
   const [rotaOtimizada, setRotaOtimizada] = useState<[number, number][]>([]);
@@ -36,7 +36,6 @@ export default function MapImportacao({
       ? [pontos[0].latitude, pontos[0].longitude]
       : [-21.625874, -49.790554];
 
-  // Atualiza rotas e calcula rota calculada conforme tipoRota
   useEffect(() => {
     async function carregarRotas() {
       if (pontos.length < 2) {
@@ -50,20 +49,22 @@ export default function MapImportacao({
       }
 
       try {
-        // Coordenadas: [lat, lng]
         const coords = pontos.map((p) => [p.latitude, p.longitude]) as [
           number,
           number
         ][];
 
-        // Rota otimizada ORS
+        if (tipoRota === "manual") {
+          setRotaCalculada(pontos);
+          return;
+        }
+
         const {
           rota: rotaOtimaCoords,
           ordem,
           tempo: tempoOtimo,
         } = await buscarRotaORS(coords);
 
-        // Converte para [lat, lng]
         const rotaOtimizadaLatLng = rotaOtimaCoords.map(
           ([lng, lat]) => [lat, lng] as [number, number]
         );
@@ -72,7 +73,6 @@ export default function MapImportacao({
         setOrdemOtimizada(ordem);
         setTempoOtimizado(tempoOtimo);
 
-        // Rota excel (ordem do arquivo) ORS
         const { rota: rotaOrigCoords, tempo: tempoOrig } =
           await buscarRotaOriginalORS(coords);
 
@@ -83,10 +83,7 @@ export default function MapImportacao({
         setRotaExcel(rotaExcelLatLng);
         setTempoExcel(tempoOrig);
 
-        // Atualiza pontos ordenados conforme tipo de rota para setRotaCalculada
         if (tipoRota === "otimizada") {
-          // Ordem otimizada: mapa índice do ponto -> ordem ORS
-          // Criar array com índices dos pontos ordenados segundo ordemORS
           const indicesOrdenados = ordem
             .map((ordemValor, idx) => ({ idx, ordemValor }))
             .sort((a, b) => a.ordemValor - b.ordemValor)
@@ -95,7 +92,6 @@ export default function MapImportacao({
           const pontosOrdenados = indicesOrdenados.map((i) => pontos[i]);
           setRotaCalculada(pontosOrdenados);
         } else {
-          // Rota Excel: ordem original (sem alteração)
           setRotaCalculada(pontos);
         }
       } catch (error) {
@@ -127,40 +123,38 @@ export default function MapImportacao({
           const iconComNumero = new L.DivIcon({
             html: `
               <div style="
+                position: relative;
+                font-size: 10px;
+                font-weight: bold;
+                color: white;
+                background: blue;
+                border-radius: 50%;
+                width: 50px;
+                height: 28px;
                 display: flex;
-                flex-direction: column;
                 align-items: center;
-                transform: translate(-50%, -100%);
+                justify-content: center;
+                flex-direction: column;
               ">
+                <div style="font-size: 8px;">${i + 1}º Excel</div>
+                <div style="font-size: 8px;">${ordemO}º Ot.</div>
+                        
                 <div style="
-                  font-size: 10px;
-                  font-weight: bold;
-                  color: white;
-                  background: blue;
-                  border-radius: 50%;
-                  width: 36px;
-                  height: 36px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  flex-direction: column;
-                ">
-                  <div>${i + 1} E</div>
-                  <div style="font-size: 9px;">${ordemO} O</div>
-                </div>
-                <div style="
-                  margin-top: 2px;
-                  font-size: 10px;
-                  background: white;
-                  padding: 2px 4px;
-                  border-radius: 4px;
-                ">
-                  ${p.identificacao}
-                </div>
+                  content: '';
+                  position: absolute;
+                  bottom: -6px;
+                  left: 50%;
+                  transform: translateX(-50%);
+                  width: 0;
+                  height: 0;
+                  border-left: 6px solid transparent;
+                  border-right: 6px solid transparent;
+                  border-top: 6px solid blue;
+                "></div>
               </div>
             `,
             className: "",
-            iconAnchor: [18, 36],
+            iconAnchor: [26, 36],
           });
 
           return (
@@ -185,10 +179,18 @@ export default function MapImportacao({
         {tipoRota === "excel" && rotaExcel.length > 1 && (
           <Polyline positions={rotaExcel} color="red" weight={4} />
         )}
+
+        {tipoRota === "manual" && pontos.length > 1 && (
+          <Polyline
+            positions={pontos.map((p) => [p.latitude, p.longitude])}
+            color="green"
+            weight={4}
+          />
+        )}
       </MapContainer>
 
       {(tempoOtimizado !== null || tempoExcel !== null) && (
-        <div className="absolute bottom-2 left-2 bg-white p-2 rounded shadow text-sm font-semibold space-y-1">
+        <div className="absolute top-2 border-2 border-black left-12 bg-white p-2 rounded shadow text-sm font-semibold space-y-1">
           {tempoOtimizado !== null && (
             <div>Rota otimizada: {formatarTempo(tempoOtimizado)}</div>
           )}

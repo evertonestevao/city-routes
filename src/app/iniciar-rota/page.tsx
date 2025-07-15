@@ -125,14 +125,23 @@ export default function IniciarRotaPage() {
   useEffect(() => {
     if (rotaAtiva) return;
     if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        const pos: Posicao = [
-          position.coords.latitude,
-          position.coords.longitude,
-        ];
-        setPosicaoUsuario(pos);
-        ultimaPosicaoRef.current = pos;
-      });
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const pos: Posicao = [
+            position.coords.latitude,
+            position.coords.longitude,
+          ];
+          setPosicaoUsuario(pos);
+          ultimaPosicaoRef.current = pos;
+        },
+        (error) => {
+          console.warn("Erro ao obter GPS, usando fallback:", error.message);
+          const fallback: Posicao = [-21.62626339903273, -49.795800551600195];
+          setPosicaoUsuario(fallback);
+          ultimaPosicaoRef.current = fallback;
+        },
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
+      );
     }
   }, [rotaAtiva]);
 
@@ -281,7 +290,7 @@ export default function IniciarRotaPage() {
 
       <main className="flex-grow flex flex-col items-center justify-start">
         {rotaSelecionada && pontosRestantes.length > 0 && posicaoUsuario ? (
-          <div className="w-full max-w-4xl h-96 border rounded overflow-hidden">
+          <div className="w-full h-full border rounded overflow-hidden">
             <MapIniciarRota
               center={posicaoUsuario}
               localUsuario={posicaoUsuario}

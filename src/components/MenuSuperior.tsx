@@ -14,6 +14,7 @@ export function MenuSuperior() {
   const router = useRouter();
 
   const botoes = [
+    { label: "Rotas Inteligentes", path: "/rotas-inteligentes" },
     { label: "Acompanhamento", path: "/acompanhamento" },
     { label: "Administrar Rotas", path: "/administrar-rotas" },
     { label: "Iniciar Rota", path: "/iniciar-rota" },

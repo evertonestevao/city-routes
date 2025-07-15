@@ -242,7 +242,8 @@ export default function AcompanharPage() {
     } else if (diffMin === 0) {
       setTempoEstimado("red|O caminhão está muito próximo");
     } else {
-      setTempoEstimado(`blue|Tempo estimado: ${diffMin} minuto(s)`);
+      // setTempoEstimado(`blue|Tempo estimado: ${diffMin} minuto(s)`);
+      setTempoEstimado(``);
     }
   }, [posicaoCaminhao, posicaoUsuario, pontosRota]);
 
@@ -290,7 +291,7 @@ export default function AcompanharPage() {
     <div className="flex flex-col h-screen">
       <MenuSuperior />
       <header className="h-16 bg-green-600 text-white p-4 text-xl font-bold">
-        Caminhão em tempo real
+        Veículo em tempo real
       </header>
 
       <div className="p-4 bg-gray-100">
@@ -349,6 +350,7 @@ export default function AcompanharPage() {
           <Map
             center={posicaoCaminhao}
             localUsuario={posicaoUsuario}
+            // pontosLinha={[]}
             pontosLinha={caminhãoPassou ? [] : pontosLinhaLimitada}
           />
         ) : (

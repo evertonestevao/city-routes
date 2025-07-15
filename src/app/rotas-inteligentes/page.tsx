@@ -27,7 +27,9 @@ export default function RotasInteligentesPage() {
   const [descricao, setDescricao] = useState("");
   const [pontos, setPontos] = useState<PontoImportado[]>([]);
   const [rotaCalculada, setRotaCalculada] = useState<PontoImportado[]>([]);
-  const [tipoRota, setTipoRota] = useState<"otimizada" | "excel">("otimizada");
+  const [tipoRota, setTipoRota] = useState<"otimizada" | "excel" | "manual">(
+    "otimizada"
+  );
 
   const handleUploadExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -107,11 +109,11 @@ export default function RotasInteligentesPage() {
     <div className="flex flex-col h-screen">
       <MenuSuperior />
       <header className="h-16 bg-green-700 text-white p-4 text-xl font-bold">
-        Criar Rota Inteligente
+        Rota Inteligente
       </header>
 
       <Tabs defaultValue="importar" className="flex flex-col flex-1">
-        <TabsList className="bg-gray-100 p-2 border-b w-full">
+        <TabsList className="bg-gray-100 p-2 border-b w-full m-2">
           <TabsTrigger value="importar" className="m-4">
             Importar do Excel
           </TabsTrigger>
@@ -120,11 +122,13 @@ export default function RotasInteligentesPage() {
         <TabsContent value="importar" className="flex flex-col flex-1">
           <div className="p-4 max-w-3xl space-y-4">
             <Input
+              hidden
               placeholder="Nome da rota"
               value={nomeRota}
               onChange={(e) => setNomeRota(e.target.value)}
             />
             <Textarea
+              hidden
               placeholder="Descrição"
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
@@ -146,7 +150,7 @@ export default function RotasInteligentesPage() {
                     checked={tipoRota === "otimizada"}
                     onChange={() => setTipoRota("otimizada")}
                   />
-                  Rota Otimizada
+                  Rota otimizada ORS
                 </label>
                 <label className="flex items-center gap-2">
                   <input
@@ -156,12 +160,30 @@ export default function RotasInteligentesPage() {
                     checked={tipoRota === "excel"}
                     onChange={() => setTipoRota("excel")}
                   />
-                  Rota do Excel
+                  Rota original (excel)
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="tipoRota"
+                    value="manual"
+                    checked={tipoRota === "manual"}
+                    onChange={() => {
+                      setTipoRota("manual");
+                      setRotaCalculada(pontos); // simplesmente liga os pontos
+                    }}
+                  />
+                  Rota sem ORS
                 </label>
               </div>
             )}
 
-            <Button onClick={salvarRota} disabled={rotaCalculada.length === 0}>
+            <Button
+              onClick={salvarRota}
+              disabled={rotaCalculada.length === 0}
+              hidden
+              className="mt-4"
+            >
               Salvar Rota
             </Button>
           </div>
