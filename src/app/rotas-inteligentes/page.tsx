@@ -120,6 +120,21 @@ export default function RotasInteligentesPage() {
         </TabsList>
 
         <TabsContent value="importar" className="flex flex-col flex-1">
+          <div className="flex items-center gap-4 p-4 ">
+            <Input
+              type="file"
+              accept=".xlsx, .xls"
+              onChange={handleUploadExcel}
+              className="hover:cursor-pointer w-1/2"
+            />
+            <a
+              href="/rotas_inteligentes.xlsx"
+              download
+              className="w-1/2 px-4 py-1 border border-gray-200 text-gray-500 rounded hover:text-green-700  hover:bg-green-200 text-center"
+            >
+              Baixar planilha de exemplo
+            </a>
+          </div>
           <div className="p-4 max-w-3xl space-y-4">
             <Input
               hidden
@@ -132,12 +147,6 @@ export default function RotasInteligentesPage() {
               placeholder="Descrição"
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
-            />
-            <Input
-              type="file"
-              accept=".xlsx, .xls"
-              onChange={handleUploadExcel}
-              className="hover:cursor-pointer"
             />
 
             {pontos.length > 0 && (

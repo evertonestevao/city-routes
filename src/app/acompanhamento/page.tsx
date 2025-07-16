@@ -295,23 +295,32 @@ export default function AcompanharPage() {
       </header>
 
       <div className="p-4 bg-gray-100">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Selecione a rota:
-        </label>
-        <select
-          className="border rounded p-2 w-full max-w-md"
-          value={rotaSelecionada}
-          onChange={(e) => setRotaSelecionada(e.target.value)}
-        >
-          <option value="" disabled>
-            Escolha...
-          </option>
-          {rotas.map((rota) => (
-            <option key={rota.id} value={rota.id}>
-              {rota.nome}
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-col md:flex-row md:items-center md:gap-4">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Selecione a rota:
+            </label>
+            <select
+              className="border rounded p-2 w-full max-w-md"
+              value={rotaSelecionada}
+              onChange={(e) => setRotaSelecionada(e.target.value)}
+            >
+              <option value="" disabled>
+                Escolha...
+              </option>
+              {rotas.map((rota) => (
+                <option key={rota.id} value={rota.id}>
+                  {rota.nome}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <p className="text-sm text-gray-600 mt-2 md:mt-6 md:max-w-sm">
+            ⚠️ Acompanhar só funciona se alguém tiver iniciado a rota no
+            sistema. Essa tela depende do envio em tempo real da localização.
+          </p>
+        </div>
       </div>
 
       {textoTempo && (
